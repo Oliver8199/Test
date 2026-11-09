@@ -14,7 +14,24 @@
 | トレンド | 収集のたびに記録される「検索結果件数」「価格中央値」の推移グラフ |
 | 取込/出力 | CSV 取り込み（日本語ヘッダー可・UTF-8/Shift_JIS）、CSV 出力（Excel 対応） |
 
-## セットアップと起動
+## かんたん起動（デスクトップにショートカットを作る）
+
+事前に [Python 3.10 以上](https://www.python.org/downloads/) をインストールしてください
+（Windows はインストール時に「Add python.exe to PATH」にチェック）。
+
+1. このフォルダをパソコンに置く（GitHub の「Code → Download ZIP」で取得して展開、または `git clone`）
+2. フォルダ内のファイルをダブルクリック
+   - **Windows**: `ショートカット作成.bat`
+   - **Mac**: `ショートカット作成.command`（開けない場合は右クリック →「開く」）
+   - **Linux**: ターミナルで `python3 create_shortcut.py`
+3. デスクトップに「**クラウドソーシング調査**」ができるので、ダブルクリックで起動
+
+初回だけ必要なライブラリを自動インストールします（1〜2分）。起動するとブラウザが自動で開きます。
+黒いウィンドウを閉じるとアプリが終了します。ショートカットを使わずに `start.bat` / `start.command` を直接ダブルクリックしても起動できます。
+
+> フォルダを移動したときは、ショートカットをもう一度作り直してください。
+
+## セットアップと起動（手動）
 
 ```bash
 pip install -r requirements.txt
@@ -70,6 +87,10 @@ app/
   analysis.py        相場・競合・トレンドの集計
   importer.py        CSV 取り込み・出力
   static/            画面（HTML/JS/CSS, Chart.js）
+launch.py            ワンクリック起動（.venv 自動作成・ブラウザ自動表示）
+create_shortcut.py   デスクトップにショートカットを作成
+start.bat / start.command, ショートカット作成.bat / .command
+assets/              アイコン
 tests/               pytest（ネットワーク不要のサンプル HTML で検証）
 ```
 
