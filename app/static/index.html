@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>クラウドソーシング調査</title>
+<link rel="stylesheet" href="/static/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<header>
+  <h1>クラウドソーシング調査</h1>
+  <nav id="tabs">
+    <button data-tab="home" class="active">収集</button>
+    <button data-tab="jobs">案件</button>
+    <button data-tab="prices">相場</button>
+    <button data-tab="sellers">競合分析</button>
+    <button data-tab="trends">トレンド</button>
+    <button data-tab="io">取込/出力</button>
+  </nav>
+</header>
+
+<main>
+  <div class="filterbar">
+    <label>キーワード
+      <select id="kw"><option value="">（すべて）</option></select>
+    </label>
+    <span class="muted" id="overview"></span>
+  </div>
+
+  <!-- 収集 -->
+  <section id="tab-home" class="tab active">
+    <div class="card">
+      <h2>今すぐ収集</h2>
+      <form id="collect-form" class="row">
+        <select name="platform">
+          <option value="crowdworks">クラウドワークス（案件）</option>
+          <option value="coconala">ココナラ（出品サービス）</option>
+          <option value="both">両方</option>
+        </select>
+        <input name="keyword" placeholder="例: Python, ロゴ作成" required>
+        <label class="inline">ページ数 <input name="pages" type="number" value="1" min="1" max="5"></label>
+        <button type="submit">収集する</button>
+        <button type="button" id="add-watch" class="secondary">ウォッチに追加</button>
+      </form>
+      <p class="muted small">公開ページのみを robots.txt に従い、数秒間隔で取得します。各サイトの利用規約を確認のうえ、個人の調査目的で少量だけ使ってください。</p>
+      <pre id="collect-log" class="log"></pre>
+    </div>
+    <div class="card">
+      <h2>ウォッチリスト <button id="run-watch" class="secondary small-btn">一括収集</button></h2>
+      <p class="muted small">定期実行は cron で <code>python -m app.cli watch run</code> を設定すると、トレンドが自動で蓄積されます。</p>
+      <table id="watch-table"><thead><tr><th>サイト</th><th>キーワード</th><th>ページ</th><th></th></tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <!-- 案件 -->
+  <section id="tab-jobs" class="tab">
+    <div class="card">
+      <form id="jobs-form" class="row">
+        <input name="q" placeholder="タイトル・本文で絞り込み">
+        <select name="payment_type">
+          <option value="">報酬形式: すべて</option>
+          <option value="fixed">固定報酬</option>
+          <option value="hourly">時間単価</option>
+          <option value="writing">記事単価</option>
+          <option value="task">タスク</option>
+        </select>
+        <input name="min_budget" type="number" placeholder="予算 下限(円)">
+        <select name="sort">
+          <option value="new">新着順</option>
+          <option value="budget">予算が高い順</option>
+          <option value="competition">契約数が少ない順</option>
+        </select>
+        <button type="submit">表示</button>
+      </form>
+      <div class="scroll"><table id="jobs-table"><thead><tr>
+        <th>掲載</th><th>タイトル</th><th>報酬</th><th class="num">予算</th><th class="num">契約/募集</th><th>発注者</th>
+      </tr></thead><tbody></tbody></table></div>
+    </div>
+    <div class="card">
+      <h2>よく発注しているクライアント</h2>
+      <div class="scroll"><table id="clients-table"><thead><tr>
+        <th>発注者</th><th class="num">案件数</th><th class="num">平均予算</th><th>最新掲載</th>
+      </tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- 相場 -->
+  <section id="tab-prices" class="tab">
+    <div class="grid2">
+      <div class="card">
+        <h2>出品サービスの価格分布</h2>
+        <div id="svc-summary" class="stats"></div>
+        <div class="chart"><canvas id="svc-hist"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>案件予算の分布 <select id="job-ptype" class="small-btn">
+          <option value="fixed">固定報酬</option><option value="hourly">時間単価</option><option value="writing">記事単価</option>
+        </select></h2>
+        <div id="job-summary" class="stats"></div>
+        <div class="chart"><canvas id="job-hist"></canvas></div>
+      </div>
+    </div>
+    <p class="muted small">価格は裾が長いため横軸は対数スケールで区切っています。案件予算は「下限と上限の中間値」です。</p>
+  </section>
+
+  <!-- 競合分析 -->
+  <section id="tab-sellers" class="tab">
+    <div class="card">
+      <h2>出品者ランキング</h2>
+      <p class="muted small">「レビュー増」は期間内に増えたレビュー数で、販売数の目安です（定期収集で精度が上がります）。「推定売上」はレビュー数×価格のごく粗い目安です。</p>
+      <div class="chart tall"><canvas id="seller-chart"></canvas></div>
+      <div class="scroll"><table id="sellers-table"><thead><tr>
+        <th>出品者</th><th>ランク</th><th class="num">出品数</th><th class="num">平均価格</th><th class="num">価格帯</th>
+        <th class="num">レビュー計</th><th class="num">評価</th><th class="num">レビュー増(30日)</th><th class="num">推定売上</th>
+      </tr></thead><tbody></tbody></table></div>
+    </div>
+    <div class="card">
+      <h2>サービス一覧
+        <select id="svc-sort" class="small-btn">
+          <option value="reviews">レビュー数順</option><option value="rating">評価順</option>
+          <option value="price_asc">安い順</option><option value="price_desc">高い順</option><option value="new">新着順</option>
+        </select>
+      </h2>
+      <div class="scroll"><table id="services-table"><thead><tr>
+        <th>サービス</th><th>出品者</th><th class="num">価格</th><th class="num">評価</th><th class="num">レビュー</th><th>ラベル</th>
+      </tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- トレンド -->
+  <section id="tab-trends" class="tab">
+    <div class="card">
+      <h2>件数の推移</h2>
+      <p class="muted small">キーワードを選ぶと見やすくなります。データは収集のたびに1点ずつ増えます。</p>
+      <div class="chart tall"><canvas id="trend-count"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>価格（中央値）の推移</h2>
+      <div class="chart tall"><canvas id="trend-price"></canvas></div>
+    </div>
+  </section>
+
+  <!-- 取込/出力 -->
+  <section id="tab-io" class="tab">
+    <div class="grid2">
+      <div class="card">
+        <h2>CSV 取り込み</h2>
+        <form id="import-form" class="col">
+          <select name="kind"><option value="service">出品サービス</option><option value="job">案件</option></select>
+          <input name="platform" placeholder="プラットフォーム名（例: coconala, lancers）" value="manual">
+          <input name="keyword" placeholder="キーワード（任意）">
+          <input name="file" type="file" accept=".csv,text/csv" required>
+          <button type="submit">取り込む</button>
+        </form>
+        <p class="muted small">ヘッダー例（出品サービス）: <code>タイトル,価格,評価,レビュー数,出品者,URL</code><br>
+        （案件）: <code>タイトル,報酬形式,予算下限,予算上限,発注者,URL</code><br>英語の列名（title, price ...）でも可。</p>
+        <pre id="import-log" class="log"></pre>
+      </div>
+      <div class="card">
+        <h2>CSV 出力</h2>
+        <p>選択中のキーワードで絞り込んで出力します（Excel で開けます）。</p>
+        <div class="row">
+          <a class="btn" data-export="job">案件</a>
+          <a class="btn" data-export="service">出品サービス</a>
+          <a class="btn" data-export="sellers">出品者ランキング</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+<script src="/static/app.js"></script>
+</body>
+</html>
