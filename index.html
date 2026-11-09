@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ポモドーロタイマー</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-mode="work">
+  <main class="app">
+    <h1 class="title">ポモドーロタイマー</h1>
+
+    <nav class="modes" role="tablist" aria-label="モード">
+      <button class="mode" data-mode="work" role="tab">作業</button>
+      <button class="mode" data-mode="short" role="tab">短い休憩</button>
+      <button class="mode" data-mode="long" role="tab">長い休憩</button>
+    </nav>
+
+    <section class="timer" aria-live="polite">
+      <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
+        <circle class="ring-bg" cx="60" cy="60" r="54" />
+        <circle class="ring-fg" id="ring" cx="60" cy="60" r="54" />
+      </svg>
+      <div class="timer-text">
+        <div class="time" id="time">25:00</div>
+        <div class="label" id="label">作業中</div>
+      </div>
+    </section>
+
+    <div class="controls">
+      <button class="btn secondary" id="reset" title="リセット (R)">リセット</button>
+      <button class="btn primary" id="toggle" title="開始/一時停止 (Space)">開始</button>
+      <button class="btn secondary" id="skip" title="スキップ (S)">スキップ</button>
+    </div>
+
+    <p class="stats">
+      今日の完了ポモドーロ: <strong id="count">0</strong>
+      <span class="dots" id="dots"></span>
+    </p>
+
+    <details class="settings">
+      <summary>設定</summary>
+      <form id="settings-form">
+        <label>作業時間（分）<input type="number" name="work" min="1" max="120" required></label>
+        <label>短い休憩（分）<input type="number" name="short" min="1" max="60" required></label>
+        <label>長い休憩（分）<input type="number" name="long" min="1" max="60" required></label>
+        <label>長い休憩までの回数<input type="number" name="interval" min="1" max="12" required></label>
+        <label class="check"><input type="checkbox" name="autoStart"> 次のセッションを自動で開始</label>
+        <label class="check"><input type="checkbox" name="sound"> 終了時に音を鳴らす</label>
+        <label class="check"><input type="checkbox" name="notify"> デスクトップ通知</label>
+        <button type="submit" class="btn primary small">保存</button>
+      </form>
+    </details>
+
+    <p class="hint">ショートカット: Space 開始/停止 ・ R リセット ・ S スキップ</p>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
