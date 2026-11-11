@@ -8,6 +8,9 @@
 """
 
 import argparse
+import datetime
+import os
+import subprocess
 import hashlib
 import io
 import sys
@@ -134,10 +137,32 @@ def save_pdf(images, path):
     images[0].save(path, save_all=True, append_images=images[1:], resolution=144)
 
 
+def desktop_dir():
+    """デスクトップのフォルダを探す（Windows の OneDrive デスクトップにも対応）"""
+    home = Path.home()
+    for d in (home / "OneDrive" / "デスクトップ", home / "OneDrive" / "Desktop",
+              home / "Desktop", home / "デスクトップ"):
+        if d.is_dir():
+            return d
+    return home
+
+
+def open_folder(path):
+    """保存先フォルダを開く（失敗しても無視）"""
+    try:
+        if sys.platform.startswith("win"):
+            os.startfile(path)  # noqa: S606
+        elif sys.platform == "darwin":
+            subprocess.run(["open", str(path)], check=False)
+    except Exception:
+        pass
+
+
 def main():
     p = argparse.ArgumentParser(description="資料ページをスクロール撮影してPDFにまとめる")
-    p.add_argument("url", help="最初に開くURL")
-    p.add_argument("-o", "--output", default="capture.pdf", help="出力PDF名")
+    p.add_argument("url", nargs="?", help="最初に開くURL（省略すると起動時に聞きます）")
+    p.add_argument("-o", "--output", default=None,
+                   help="出力PDF名（省略するとデスクトップの「講座資料キャプチャ」フォルダに保存）")
     p.add_argument("--width", type=int, default=1280, help="ブラウザの幅(px)")
     p.add_argument("--height", type=int, default=900, help="ブラウザの高さ(px)")
     p.add_argument("--wait", type=float, default=0.8, help="スクロール後の待ち秒数")
@@ -146,7 +171,7 @@ def main():
     p.add_argument("--max-steps", type=int, default=300, help="1ページあたりの最大撮影枚数")
     p.add_argument("--channel", default=None,
                    help="'chrome' を指定するとPCにインストール済みのGoogle Chromeを使う")
-    p.add_argument("--profile", default=".browser-profile",
+    p.add_argument("--profile", default=str(Path(__file__).resolve().parent / ".browser-profile"),
                    help="ログイン状態を保存するフォルダ（次回からログイン不要）")
     p.add_argument("--save-png", action="store_true", help="PDFとは別にPNG画像も保存する")
     p.add_argument("--headless", action="store_true",
@@ -155,6 +180,20 @@ def main():
                    help="Enter待ちをせず、開いたページを1つだけ撮影して終了")
     p.add_argument("--executable-path", default=None, help=argparse.SUPPRESS)
     args = p.parse_args()
+
+    if not args.url:
+        args.url = input("資料のURLを貼り付けて Enter（空のままならブランクページで開きます）: ").strip()
+        if not args.url:
+            args.url = "about:blank"
+        elif "://" not in args.url:
+            args.url = "https://" + args.url
+    if not args.output:
+        out_dir = desktop_dir() / "講座資料キャプチャ"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        default = "講座資料_" + datetime.datetime.now().strftime("%Y%m%d_%H%M")
+        name = "" if args.no_prompt else input(f"保存するファイル名（空のままなら {default}）: ").strip()
+        name = name or default
+        args.output = str(out_dir / (name if name.lower().endswith(".pdf") else name + ".pdf"))
 
     all_images, all_texts = [], []
     with sync_playwright() as pw:
@@ -197,6 +236,8 @@ def main():
     md = Path(args.output).with_suffix(".md")
     md.write_text("\n\n---\n\n".join(all_texts), encoding="utf-8")
     print(f"\n完了: {args.output}（{len(all_images)}ページ） と {md}（テキスト）を作成しました。")
+    if not args.no_prompt:
+        open_folder(Path(args.output).resolve().parent)
     return 0
 
 
